@@ -4,20 +4,16 @@ using UnityEngine;
 
 public class Inventario : MonoBehaviour
 {
-    private List<GameObject> objetosEnInventario = new List<GameObject>();
+    public GameObject UIinventario;
+    public GameObject UIpanelSlots;
 
-    public void AgregarObjeto(GameObject objeto)
+    
+    private void Start()
     {
-        objetosEnInventario.Add(objeto);
-        Debug.Log("Objeto agregado al inventario: " + objeto.name);
+        
     }
+    public void InventarioScreen() { UIinventario.gameObject.SetActive(true); }
+    public void InventarioCerrar() { UIinventario.gameObject.SetActive(false); }
 
-    public void MostrarInventario()
-    {
-        Debug.Log("Objetos en el inventario:");
-        foreach (GameObject objeto in objetosEnInventario)
-        {
-            Debug.Log(objeto.name);
-        }
-    }
+
 }

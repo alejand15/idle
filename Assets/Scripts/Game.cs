@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,7 +9,8 @@ public class Game : MonoBehaviour
     public int coins;
     public int damage;
     public GameObject click;
-    public Text coinsNumber;
+    public TMP_Text damageClick;
+    public TMP_Text coinsNumber;
     public Image hpBar;
     Animal conejo;
     private void Start()
@@ -26,19 +28,18 @@ public class Game : MonoBehaviour
 
     void Update()
     {
+        coinsNumber.text = coins.ToString();
+        damageClick.text = damage.ToString();
     }
 
     public void Clicks()
     {
-        damage++;
         conejo.TakeDamage(damage);
         UpdateHealthBar();
-
     }
 
     public void ResetClicks()
     {
-        damage = 0;
         conejo.ResetHealth();
         UpdateHealthBar();
     }
