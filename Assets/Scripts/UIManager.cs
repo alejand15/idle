@@ -7,7 +7,6 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager instance;
 
-    //Screen object variables
     public GameObject loginUI;
     public GameObject registerUI;
     public GameObject resetPassUI;
@@ -16,20 +15,25 @@ public class UIManager : MonoBehaviour
     public GameObject accManagerCanvas;
     public GameObject gameScreen;
 
+
+
+    
     private void Awake()
     {
+        //Verifica si la instancia es nula
         if (instance == null)
         {
             instance = this;
         }
         else if (instance != null)
         {
+            // Si ya existe una instancia, muestra un mensaje de advertencia y la destruye
             Debug.Log("Instance already exists, destroying object!");
             Destroy(this);
         }
     }
 
-    //Functions to change the login screen UI
+    //Funciones para activar y desactivar pantallas
     public void LoginScreen() 
     {
         loginUI.SetActive(true);

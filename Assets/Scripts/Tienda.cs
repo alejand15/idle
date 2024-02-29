@@ -9,81 +9,190 @@ using UnityEngine.UI;
 public class Tienda : MonoBehaviour
 {
     public GameObject UItienda;
-    private Objeto[] objetos;
+    public Objeto[] objetos;
     private Game game;
-    private Inventario inventario;
     public GameObject[] desbloquearPanel;
     public GameObject[] spritesPanel;
     public TMP_Text[] lvlObj;
+    public GameObject UIinventario;
+    public TMP_Text[] nombreObjetoTxt;
+    public TMP_Text[] descripcionObjetoTxt;
+    public TMP_Text[] monedasObjetoTxt;
+    public int[] nuevosNiveles;
+    public DataServer dataServer;
+    public DataToSave dts;
+    public TMP_Text avisoMonedas;
+    private Coroutine avisoCoroutine;
+
     public void Start()
     {
         // Inicialización de objetos
         objetos = new Objeto[]
         {
-            new Objeto("Rastrillo", 100, 1000, "xddddd"),
-            new Objeto("Pala", 1500, 10000, "xddddd"),
-            new Objeto("Azada", 2000, 50000, "xddddd"),
-            new Objeto("Machete", 10000, 100000, "xddddd"),
-            new Objeto("Tijeras", 18000, 900000, "xddddd"),
-            new Objeto("Motosierra", 20000, 1500000, "xddddd"),
-            new Objeto("Ballesta", 25000, 2000000, "xddddd"),
-            new Objeto("Pistola", 30000, 2500000, "xddddd"),
-            new Objeto("Escopeta", 36000, 3000000, "xddddd"),
-            new Objeto("Minigun", 50000, 4000000, "xddddd")
+            new Objeto("Lanza", 1, 10, "Aumenta 1 de daño en cada compra."),
+            new Objeto("Hacha", 10, 100, "Aumenta 10 de daño en cada compra."),
+            new Objeto("Arco", 100, 1000, "Aumenta 100 de daño en cada compra."),
+            new Objeto("Pistola", 5000, 3000, "Aumenta 5000 de daño en cada compra."),
+            new Objeto("Escopeta", 10000, 5500, "Aumenta 10000 de daño en cada compra."),
+            new Objeto("Francotirador", 15000, 7500, "Aumenta 15000 de daño en cada compra."),
+            new Objeto("Rifle", 25000, 12000, "Aumenta 25000 de daño en cada compra."),
+            new Objeto("Famas", 40000, 18000, "Aumenta 40000 de daño en cada compra."),
+            new Objeto("Scar-L", 50000, 22000, "Aumenta 50000 de daño en cada compra."),
+            new Objeto("AWP", 70000, 30000, "Aumenta 70000 de daño en cada compra.")
         };
-
         game = FindObjectOfType<Game>();
-        if (game == null)
+        // Asegura que dataServer no sea nulo
+        if (dataServer == null)
         {
-            Debug.LogError("No se encontró una instancia de Game en la escena.");
+            Debug.LogError("DataServer no asignado en la Tienda.");
             return;
         }
 
-        inventario = FindObjectOfType<Inventario>();
-        if (inventario == null)
+        // Asegura que dts no sea nulo
+        if (dts == null)
         {
-            Debug.LogError("No se encontró una instancia de Inventario en la escena.");
+            Debug.LogError("DataToSave no asignado en la Tienda.");
             return;
         }
+
+        // Carga los datos desde la base de datos
+        dataServer.LoadDataFn();
+
+        Debug.Log("Datos cargados desde la base de datos.");
+
+        // Actualiza la información de los objetos después de cargar los datos  
+        sustituirInfo();
+        InfoObjetoTexto();
     }
-    private void Update()
+
+    // Actualiza los textos en la interfaz de usuario con información de objetos
+    private void InfoObjetoTexto()
     {
-        
+        for (int i = 0; i < objetos.Length; i++)
+        {
+            nombreObjetoTxt[i].text = objetos[i].nombreObjeto;
+            descripcionObjetoTxt[i].text = objetos[i].descripcionObj;
+            monedasObjetoTxt[i].text = objetos[i].BuyCoins.ToString();
+        }
     }
+
+
+    // Función para comprar un objeto
     private void ComprarObjeto(Objeto objeto)
-    {
-
+    {    
         if (game.coins >= objeto.BuyCoins)
         {
             game.coins -= objeto.BuyCoins;
-            //inventario.AgregarObjeto(objeto.gameObject, objeto.Id, objeto.nombreObjeto, objeto.IconoObjeto);
             objeto.Lvl++;
+            Debug.Log("Compra exitosa. Nuevo nivel: " + objeto.Lvl);
+            game.damage += objeto.DamageObject * objeto.Lvl;
+            DesbloquarObj(Array.IndexOf(objetos, objeto));
 
+            SetNivelesObjetos(GetNivelesObjetos());
+
+            // Después de realizar una compra y actualizar niveles en la base de datos
+            dataServer.UpdateNivelesObjetos();
+            if (avisoCoroutine != null)
+            {
+                StopCoroutine(avisoCoroutine);
+            }
+            avisoCoroutine = StartCoroutine(OcultarAvisoMonedas());
         }
         else
         {
-            Debug.Log("No tienes suficientes monedas para comprar este objeto.");
+            avisoMonedas.text = "No tienes suficientes monedas.";
+            if (avisoCoroutine != null)
+            {
+                StopCoroutine(avisoCoroutine);
+            }
+            avisoCoroutine = StartCoroutine(OcultarAvisoMonedas());
         }
-            
     }
-    private void DesbloquarObj(int numero)
+
+    // Desbloquea un objeto en la interfaz de usuario
+    private void DesbloquarObj(int i)
+    {    
+        desbloquearPanel[i].SetActive(false);
+        spritesPanel[i].SetActive(true);
+        lvlObj[i].text = "x " + objetos[i].Lvl.ToString();
+    }
+
+    // Desbloquea objetos en la carga del juego
+    public void DesbloquearObjetosCarga()
     {
-        desbloquearPanel[numero].SetActive(false);
-        spritesPanel[numero].SetActive(true);
-        lvlObj[numero].text = "x "+objetos[numero].Lvl.ToString();
+        for (int i = 0; i < objetos.Length; i++)
+        {
+            if (objetos[i].Lvl > 0)
+            {
+                DesbloquarObj(i);
+            }
+        }
     }
-   
-    public void ComprarRastrillo() { ComprarObjeto(objetos[0]); DesbloquarObj(0); }
-    public void ComprarPala() { ComprarObjeto(objetos[1]); DesbloquarObj(1); }
-    public void ComprarAzada() { ComprarObjeto(objetos[2]); DesbloquarObj(2); }
-    public void ComprarMachete() { ComprarObjeto(objetos[3]); DesbloquarObj(3); }
-    public void ComprarTijeras() { ComprarObjeto(objetos[4]); DesbloquarObj(4); }
-    public void ComprarMotosierra() { ComprarObjeto(objetos[5]); DesbloquarObj(5); }
-    public void ComprarBallesta() { ComprarObjeto(objetos[6]); DesbloquarObj(6); }
-    public void ComprarPistola() { ComprarObjeto(objetos[7]); DesbloquarObj(7); }
-    public void ComprarEscopeta() { ComprarObjeto(objetos[8]); DesbloquarObj(8); }
-    public void ComprarMinigun() { ComprarObjeto(objetos[9]); DesbloquarObj(9); }
+
+    public void sustituir()
+    {
+        // Sustituye los niveles de objetos en el objeto DataToSave
+        dts.objetosNiveles = nuevosNiveles;
+    }
+
+    // Establece los niveles de objetos y actualiza el DataServer
+    public void SetNivelesObjetos(int[] nuevosNiveles)
+    {
+        if (dts != null)
+        {
+            dts.objetosNiveles = nuevosNiveles;
+
+            // Actualiza el DataServer
+            if (dataServer != null)
+            {
+                dataServer.UpdateNivelesObjetos();
+            }
+        }
+    }
+
+    // Sustituye la información de los objetos
+    public void sustituirInfo()
+    {
+        for (int i = 0; i < objetos.Length; i++)
+        {
+            objetos[i].Lvl = dts.objetosNiveles[i];
+        }
+    }
+
+    // Obtiene los niveles de los objetos
+    public int[] GetNivelesObjetos()
+    {
+        int[] niveles = new int[objetos.Length];
+
+        for (int i = 0; i < objetos.Length; i++)
+        {
+            niveles[i] = objetos[i].Lvl;
+        }
+
+        return niveles;
+    }
+    // Oculta el aviso de monedas
+    private IEnumerator OcultarAvisoMonedas()
+    {
+        yield return new WaitForSeconds(2f);
+        avisoMonedas.text = "";
+    }
+    // Comprar los objetos
+    public void ComprarLanza() { ComprarObjeto(objetos[0]); }
+    public void ComprarHacha() { ComprarObjeto(objetos[1]); }
+    public void ComprarArco() { ComprarObjeto(objetos[2]); }
+    public void ComprarPistola() { ComprarObjeto(objetos[3]); }
+    public void ComprarEscopeta() { ComprarObjeto(objetos[4]); }
+    public void ComprarFrancotirador() { ComprarObjeto(objetos[5]); }
+    public void ComprarRifle() { ComprarObjeto(objetos[6]); }
+    public void ComprarFamas() { ComprarObjeto(objetos[7]); }
+    public void ComprarScar() { ComprarObjeto(objetos[8]); }
+    public void ComprarAWP() { ComprarObjeto(objetos[9]); }
+
+    // Pantallas de tienda e inventario
     public void TiendaScreen() { UItienda.gameObject.SetActive(true); }
     public void TiendaCerrar() { UItienda.gameObject.SetActive(false); }
+    public void InventarioScreen() { UIinventario.gameObject.SetActive(true); }
+    public void InventarioCerrar() { UIinventario.gameObject.SetActive(false); }
 
 }
